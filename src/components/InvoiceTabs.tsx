@@ -100,7 +100,7 @@ export default function InvoiceTabs({
                   key={index}
                   value={`invoice-${index}`}
                   className="flex-shrink-0 w-32 text-center text-sm font-medium transition
-                             data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:shadow
+                             data-[state=active]:bg-gray-200 data-[state=active]:text-black data-[state=active]:shadow
                              data-[state=inactive]:text-gray-700 rounded-sm"
                 >
                   Invoice {index + 1}

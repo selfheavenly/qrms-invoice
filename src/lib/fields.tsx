@@ -1,6 +1,8 @@
 // lib/labels.ts
 
 // Define sets of mandatory fields for invoice and line item
+export const mandatoryQRMSFields = new Set(["qrmsNumber"]);
+
 export const mandatoryInvoiceFields = new Set([
   "companyCode",
   "documentType",
@@ -17,9 +19,10 @@ import React from "react";
 export function renderLabel(
   fieldName: string,
   label: string,
-  type: "invoice" | "line"
+  type: "qrms" | "invoice" | "line"
 ) {
   const isMandatory =
+    (type === "qrms" && mandatoryQRMSFields.has(fieldName)) ||
     (type === "invoice" && mandatoryInvoiceFields.has(fieldName)) ||
     (type === "line" && mandatoryLineFields.has(fieldName));
 

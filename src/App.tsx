@@ -1,4 +1,12 @@
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -10,10 +18,12 @@ import { FormProvider, useFieldArray, useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { InfoCircledIcon } from "@radix-ui/react-icons";
 import { Input } from "@/components/ui/input";
 import InvoiceTabs from "./components/InvoiceTabs";
 import { exportToExcel } from "@/lib/export";
 import { formSchema } from "@/lib/schema";
+import { renderLabel } from "@/lib/fields";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -43,6 +53,8 @@ export function App() {
       qrmsNumber: "",
       invoices: [emptyInvoice],
     },
+    mode: "all",
+    reValidateMode: "onChange",
   });
 
   const {
@@ -91,7 +103,113 @@ export function App() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-      <h1 className="text-4xl font-bold text-center">QRMS Invoice Request</h1>
+      <div className="flex items-center justify-center gap-2">
+        <h1 className="text-4xl font-bold text-center">QRMS Invoice Request</h1>
+
+        <Dialog>
+          <DialogTrigger asChild>
+            <button
+              aria-label="Instructions"
+              className="text-gray-500 hover:text-gray-900 focus:outline-none"
+              type="button"
+            >
+              <InfoCircledIcon className="h-6 w-6" />
+            </button>
+          </DialogTrigger>
+
+          <DialogContent className="md:w-[80vw] md:max-w-4xl h-[80vh] overflow-y-auto sm:rounded-xl sm:p-8 bg-white shadow-xl backdrop-blur-md">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold mb-4">
+                How to use the QRMS Invoice Request App
+              </DialogTitle>
+              <DialogDescription className="space-y-4 text-base leading-relaxed">
+                <div>
+                  <strong>QRMS Number</strong>
+                  <br />
+                  Enter a valid QRMS Number (at least 2 characters). This is
+                  used as the reference number in SAP.
+                </div>
+
+                <div>
+                  <strong>Invoices</strong>
+                  <br />
+                  You can add multiple invoices. Each must contain:
+                  <ul className="list-disc list-inside ml-4 mt-2">
+                    <li>Company Code</li>
+                    <li>Document Type</li>
+                    <li>Document Date</li>
+                    <li>Customer</li>
+                    <li>Currency</li>
+                  </ul>
+                  <div className="mt-1">Optional: Header Text</div>
+                </div>
+
+                <div>
+                  <strong>Line Items</strong>
+                  <br />
+                  Each invoice must have at least one line. Every line must
+                  include:
+                  <ul className="list-disc list-inside ml-4 mt-2">
+                    <li>Amount (positive number)</li>
+                    <li>Item Text</li>
+                    <li>GL Account</li>
+                  </ul>
+                  <div className="mt-2">
+                    <strong>Tax Code</strong> is optional, but if provided, it
+                    must match the Document Type:
+                    <ul className="list-disc list-inside ml-4 mt-1 text-sm text-muted-foreground">
+                      <li>DR → S1, S2</li>
+                      <li>CR → S3, S4</li>
+                      <li>IN → S1, S4</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div>
+                  <strong>Line-Level Conditional Requirements</strong>
+                  <br />
+                  Each line must fulfill <em>at least one</em> of the following:
+                  <ul className="list-disc list-inside ml-4 mt-2">
+                    <li>
+                      <strong>COPA Fields</strong> (All required except
+                      Product):
+                      <ul className="list-disc list-inside ml-4 mt-1 text-sm">
+                        <li>Profit Center</li>
+                        <li>BRS Channel</li>
+                        <li>Sales Organization</li>
+                        <li>Sales Office</li>
+                        <li>Customer</li>
+                        <li>Product Group</li>
+                        <li>
+                          <em>Product</em> (optional)
+                        </li>
+                      </ul>
+                    </li>
+                    <li>
+                      <strong>Rebilling Fields</strong> (Required if Tax Code is
+                      S3 or S4):
+                      <ul className="list-disc list-inside ml-4 mt-1 text-sm">
+                        <li>Cross-Company Code</li>
+                        <li>Trading Partner</li>
+                      </ul>
+                    </li>
+                    <li>Profit Center (single field)</li>
+                    <li>Cost Center (single field)</li>
+                    <li>WBS Element (single field)</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <strong>Export</strong>
+                  <br />
+                  When submitted, the app generates an Excel file with a fixed
+                  column structure, where each line becomes one row.
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       <FormProvider {...form}>
         <Form {...form}>
@@ -102,7 +220,7 @@ export function App() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-base">
-                    QRMS Number <span className="text-red-500">*</span>
+                    {renderLabel("qrmsNumber", "QRMS Number", "qrms")}
                   </FormLabel>
                   <FormControl>
                     <Input
