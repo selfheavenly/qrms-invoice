@@ -1,3 +1,5 @@
+// src/lib/schema.ts
+
 import { z } from "zod";
 
 const COPA_FIELDS = [
@@ -6,7 +8,6 @@ const COPA_FIELDS = [
   "copaSalesOrganization",
   "copaSalesOffice",
   "copaCustomer",
-  // product is optional
   "copaProductGroup",
 ];
 
@@ -37,61 +38,58 @@ const lineBaseSchema = z.object({
   taxCode: z.string().optional(),
 });
 
-const lineConditionalSchema = z.union([
-  // a) COPA group (all required except product optional)
-  copaSchema,
-  // b) Rebilling if taxCode is S3 or S4
-  rebillingSchema,
-  // c) Profit Center only
-  z.object({ profitCenter: z.string().min(1, "Required") }),
-  // d) Cost Center only
-  z.object({ costCenter: z.string().min(1, "Required") }),
-  // e) WBS Element only
-  z.object({ wbsElement: z.string().min(1, "Required") }),
-]);
+const lineSchema = lineBaseSchema.and(
+  z
+    .object({
+      // Add all optional conditional fields for TypeScript inference
+      copaProfitCenter: z.string().optional(),
+      copaBRSChannel: z.string().optional(),
+      copaSalesOrganization: z.string().optional(),
+      copaSalesOffice: z.string().optional(),
+      copaCustomer: z.string().optional(),
+      copaProduct: z.string().optional(),
+      copaProductGroup: z.string().optional(),
 
-export const lineSchema = lineBaseSchema.and(
-  z.object({}).refine(
-    (data) => {
-      // At least one conditional group must be valid
+      crossCompanyCode: z.string().optional(),
+      tradingPartner: z.string().optional(),
 
-      // COPA check
-      const copaValid =
-        data.copaProfitCenter &&
-        data.copaBRSChannel &&
-        data.copaSalesOrganization &&
-        data.copaSalesOffice &&
-        data.copaCustomer &&
-        data.copaProductGroup;
+      profitCenter: z.string().optional(),
+      costCenter: z.string().optional(),
+      wbsElement: z.string().optional(),
+      taxCode: z.string().optional(),
+    })
+    .refine(
+      (data) => {
+        const copaValid =
+          data.copaProfitCenter &&
+          data.copaBRSChannel &&
+          data.copaSalesOrganization &&
+          data.copaSalesOffice &&
+          data.copaCustomer &&
+          data.copaProductGroup;
 
-      // Rebilling required if taxCode S3 or S4
-      const rebillingRequired = data.taxCode === "S3" || data.taxCode === "S4";
-      const rebillingValid =
-        !rebillingRequired || (data.crossCompanyCode && data.tradingPartner);
+        const rebillingRequired =
+          data.taxCode === "S3" || data.taxCode === "S4";
+        const rebillingValid =
+          !rebillingRequired || (data.crossCompanyCode && data.tradingPartner);
 
-      // Profit Center only
-      const profitCenterValid = !!data.profitCenter;
+        const profitCenterValid = !!data.profitCenter;
+        const costCenterValid = !!data.costCenter;
+        const wbsElementValid = !!data.wbsElement;
 
-      // Cost Center only
-      const costCenterValid = !!data.costCenter;
-
-      // WBS Element only
-      const wbsElementValid = !!data.wbsElement;
-
-      return (
-        (copaValid && !rebillingRequired) ||
-        (rebillingValid && !copaValid) ||
-        profitCenterValid ||
-        costCenterValid ||
-        wbsElementValid
-      );
-    },
-    {
-      message:
-        "At least one conditional group (COPA / Rebilling / Profit Center / Cost Center / WBS Element) must be valid",
-      path: [],
-    }
-  )
+        return (
+          (copaValid && !rebillingRequired) ||
+          (rebillingValid && !copaValid) ||
+          profitCenterValid ||
+          costCenterValid ||
+          wbsElementValid
+        );
+      },
+      {
+        message:
+          "At least one conditional group (COPA / Rebilling / Profit Center / Cost Center / WBS Element) must be valid",
+      }
+    )
 );
 
 export const invoiceSchema = z.object({
@@ -108,3 +106,9 @@ export const formSchema = z.object({
   qrmsNumber: z.string().min(1, "QRMS Number required"),
   invoices: z.array(invoiceSchema).min(1, "At least one invoice required"),
 });
+
+// ✅ Export types based on schema
+
+export type LineItem = z.infer<typeof lineSchema>;
+export type Invoice = z.infer<typeof invoiceSchema>;
+export type FormValues = z.infer<typeof formSchema>;

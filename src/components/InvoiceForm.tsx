@@ -8,8 +8,11 @@ import {
 import { useFieldArray, useFormContext } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import React from "react";
+// Import the reusable label render function
+import { renderLabel } from "@/lib/fields";
+import { useState } from "react";
 
 type Props = {
   nestIndex: number;
@@ -17,22 +20,53 @@ type Props = {
 
 export default function InvoiceForm({ nestIndex }: Props) {
   const { control } = useFormContext();
-  const { fields: lines, append } = useFieldArray({
+  const {
+    fields: lines,
+    append,
+    remove,
+  } = useFieldArray({
     control,
     name: `invoices.${nestIndex}.lines`,
   });
 
-  return (
-    <div className="mb-8 rounded border bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-semibold mb-4">Invoice {nestIndex + 1}</h2>
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  const toggleSelect = (index: number) => {
+    setSelected((prev) => {
+      const copy = new Set(prev);
+      copy.has(index) ? copy.delete(index) : copy.add(index);
+      return copy;
+    });
+  };
+
+  const selectAll = () => setSelected(new Set(lines.map((_, i) => i)));
+
+  const deselectAll = () => setSelected(new Set());
+
+  const deleteSelected = () => {
+    const toRemove = Array.from(selected).sort((a, b) => b - a);
+    toRemove.forEach((i) => remove(i));
+    deselectAll();
+  };
+
+  const duplicateSelected = () => {
+    Array.from(selected).forEach((index) => {
+      const line = lines[index];
+      append({ ...line });
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <FormField
           control={control}
           name={`invoices.${nestIndex}.companyCode`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Company Code</FormLabel>
+              <FormLabel>
+                {renderLabel("companyCode", "Company Code", "invoice")}
+              </FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -45,7 +79,9 @@ export default function InvoiceForm({ nestIndex }: Props) {
           name={`invoices.${nestIndex}.documentType`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Document Type</FormLabel>
+              <FormLabel>
+                {renderLabel("documentType", "Document Type", "invoice")}
+              </FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -58,7 +94,9 @@ export default function InvoiceForm({ nestIndex }: Props) {
           name={`invoices.${nestIndex}.documentDate`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Document Date</FormLabel>
+              <FormLabel>
+                {renderLabel("documentDate", "Document Date", "invoice")}
+              </FormLabel>
               <FormControl>
                 <Input type="date" {...field} />
               </FormControl>
@@ -71,7 +109,9 @@ export default function InvoiceForm({ nestIndex }: Props) {
           name={`invoices.${nestIndex}.customer`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Customer</FormLabel>
+              <FormLabel>
+                {renderLabel("customer", "Customer", "invoice")}
+              </FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -84,7 +124,9 @@ export default function InvoiceForm({ nestIndex }: Props) {
           name={`invoices.${nestIndex}.currency`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Currency</FormLabel>
+              <FormLabel>
+                {renderLabel("currency", "Currency", "invoice")}
+              </FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -97,7 +139,9 @@ export default function InvoiceForm({ nestIndex }: Props) {
           name={`invoices.${nestIndex}.headerText`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Header Text (optional)</FormLabel>
+              <FormLabel>
+                {renderLabel("headerText", "Header Text", "invoice")}
+              </FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -107,73 +151,126 @@ export default function InvoiceForm({ nestIndex }: Props) {
         />
       </div>
 
-      <h3 className="text-lg font-medium mb-2">Line Items</h3>
-
-      {lines.map((line, lineIndex) => (
-        <div
-          key={line.id}
-          className="grid grid-cols-1 md:grid-cols-4 items-end gap-4 mb-4"
-        >
-          <FormField
-            control={control}
-            name={`invoices.${nestIndex}.lines.${lineIndex}.amount`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Amount</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={control}
-            name={`invoices.${nestIndex}.lines.${lineIndex}.itemText`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Item Text</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={control}
-            name={`invoices.${nestIndex}.lines.${lineIndex}.glAccount`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>GL Account</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={control}
-            name={`invoices.${nestIndex}.lines.${lineIndex}.taxCode`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tax Code</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">Line Items</h3>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={selectAll}
+              disabled={lines.length === 0}
+            >
+              Select All
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={deselectAll}
+              disabled={selected.size === 0}
+            >
+              Deselect All
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={deleteSelected}
+              disabled={selected.size === 0}
+            >
+              Delete Selected
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={duplicateSelected}
+              disabled={selected.size === 0}
+            >
+              Duplicate Selected
+            </Button>
+          </div>
         </div>
-      ))}
+
+        {lines.map((line, index) => (
+          <div
+            key={line.id}
+            className="grid grid-cols-[auto_1fr_1fr_1fr_1fr] gap-4 items-end"
+          >
+            <Checkbox
+              checked={selected.has(index)}
+              onCheckedChange={() => toggleSelect(index)}
+              className="mt-2"
+            />
+
+            <FormField
+              control={control}
+              name={`invoices.${nestIndex}.lines.${index}.amount`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {renderLabel("amount", "Amount", "line")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name={`invoices.${nestIndex}.lines.${index}.itemText`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {renderLabel("itemText", "Item Text", "line")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name={`invoices.${nestIndex}.lines.${index}.glAccount`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {renderLabel("glAccount", "GL Account", "line")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name={`invoices.${nestIndex}.lines.${index}.taxCode`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    {renderLabel("taxCode", "Tax Code", "line")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        ))}
+      </div>
 
       <Button
         type="button"
         onClick={() =>
           append({ amount: 0, itemText: "", glAccount: "", taxCode: "" })
         }
+        className="w-full"
         variant="outline"
       >
         + Add Line Item

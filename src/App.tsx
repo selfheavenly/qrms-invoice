@@ -1,6 +1,3 @@
-import "./index.css";
-
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -10,11 +7,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { FormProvider, useFieldArray, useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import InvoiceForm from "@/components/InvoiceForm";
-import React from "react";
+import InvoiceTabs from "./components/InvoiceTabs";
 import { exportToExcel } from "@/lib/export";
 import { formSchema } from "@/lib/schema";
 import { z } from "zod";
@@ -22,103 +19,117 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 type FormValues = z.infer<typeof formSchema>;
 
+const emptyInvoice = {
+  companyCode: "",
+  documentType: "",
+  documentDate: "",
+  customer: "",
+  currency: "",
+  headerText: "",
+  lines: [
+    {
+      amount: 0,
+      itemText: "",
+      glAccount: "",
+      taxCode: "",
+    },
+  ],
+};
+
 export function App() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       qrmsNumber: "",
-      invoices: [],
+      invoices: [emptyInvoice],
     },
   });
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = form;
 
   const {
     fields: invoices,
     append,
     remove,
   } = useFieldArray({
-    control: form.control,
+    control,
     name: "invoices",
   });
+
+  const [activeTab, setActiveTab] = useState("invoice-0");
+
+  useEffect(() => {
+    if (!invoices[+activeTab.split("-")[1]]) {
+      setActiveTab(`invoice-${Math.max(invoices.length - 1, 0)}`);
+    }
+  }, [invoices.length]);
+
+  const handleAddInvoice = () => {
+    append(emptyInvoice);
+    setTimeout(() => {
+      setActiveTab(`invoice-${invoices.length}`);
+    }, 0);
+  };
+
+  const handleRemoveInvoice = (index: number) => {
+    if (invoices.length <= 1) return;
+    remove(index);
+    setTimeout(() => {
+      const newLength = invoices.length - 1;
+      const newIndex = index >= newLength ? newLength - 1 : index;
+      setActiveTab(`invoice-${newIndex}`);
+    }, 0);
+  };
 
   const onSubmit = (data: FormValues) => {
     exportToExcel(data);
   };
 
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-6 text-center">
-        QRMS Invoice Request
-      </h1>
+    <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+      <h1 className="text-4xl font-bold text-center">QRMS Invoice Request</h1>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* QRMS Number Field */}
-          <FormField
-            control={form.control}
-            name="qrmsNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>QRMS Number</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter QRMS number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <FormProvider {...form}>
+        <Form {...form}>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={control}
+              name="qrmsNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base">
+                    QRMS Number <span className="text-red-500">*</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter QRMS number"
+                      {...field}
+                      className="text-base"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          {/* Invoices Section */}
-          <div>
-            <Button
-              type="button"
-              onClick={() =>
-                append({
-                  companyCode: "",
-                  documentType: "",
-                  documentDate: "",
-                  customer: "",
-                  currency: "",
-                  headerText: "",
-                  lines: [],
-                })
-              }
-              variant="outline"
-              className="mb-4"
-            >
-              + Add Invoice
+            <InvoiceTabs
+              invoices={invoices}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              handleAddInvoice={handleAddInvoice}
+              handleRemoveInvoice={handleRemoveInvoice}
+            />
+
+            <Button type="submit" className="w-full text-lg">
+              Export to Excel
             </Button>
-
-            {invoices.length === 0 && (
-              <p className="text-muted-foreground">
-                No invoices added yet. Click above to add one.
-              </p>
-            )}
-
-            <FormProvider {...form}>
-              {invoices.map((invoice, index) => (
-                <Card key={invoice.id} className="mb-6 border">
-                  <CardContent>
-                    <InvoiceForm nestIndex={index} />
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="mt-2 text-red-600 hover:text-red-800"
-                      onClick={() => remove(index)}
-                    >
-                      Remove Invoice
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </FormProvider>
-          </div>
-
-          <Button type="submit" className="w-full text-lg">
-            Export Excel
-          </Button>
-        </form>
-      </Form>
+          </form>
+        </Form>
+      </FormProvider>
     </div>
   );
 }
