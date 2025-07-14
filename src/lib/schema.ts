@@ -113,14 +113,16 @@ export const allowedDocumentTypes = [
   "PA",
   "RC",
   "RV",
+  "S1",
+  "S2",
+  "S3",
+  "S4",
   "TS",
   "UP",
   "ZP",
   "ZQ",
   "ZV",
 ];
-
-export const allowedTaxCodes = ["S1", "S2", "S3", "S4"];
 
 // === Field schemas ===
 
@@ -140,7 +142,7 @@ const documentTypeSchema = z
 
 const customerSchema = z
   .string()
-  .min(2, "Customer must be at least 2 characters")
+  .min(4, "Customer must be at least 4 characters")
   .regex(/^\d+$/, "Customer must contain digits only");
 
 const currencySchema = z
@@ -152,21 +154,18 @@ const currencySchema = z
 
 const glAccountSchema = z
   .string()
-  .min(2, "GL Account must be at least 2 characters");
+  .min(2, "GL Account must be at least 2 characters")
+  .regex(/^\d+$/, "GL Account must contain digits only")
+  .refine((val) => val.length === 8, {
+    message: "GL Account must be 8 digits",
+  });
 
 const taxCodeSchema = z
   .string()
   .optional()
-  .refine(
-    (val) => {
-      if (!val || val === "") return true;
-      return val.length === 2 && allowedTaxCodes.includes(val);
-    },
-    {
-      message:
-        "Invalid Tax Code (must be 2 characters and in the allowed list)",
-    }
-  );
+  .refine((val) => val === undefined || val === "" || val.length === 2, {
+    message: "Invalid Tax Code (must be 2 characters)",
+  });
 
 // === Line Item Schema ===
 
