@@ -122,7 +122,7 @@ export function exportToExcel(data: any) {
         PMNT_BLOCK: "",
         CURRENCY: invoice.currency || "",
         WRBTR:
-          linePostKey === "50" || linePostKey === "02"
+          linePostKey === "50" || linePostKey === "11"
             ? `-${formatAmount(amount)}`
             : formatAmount(amount),
         DMBTR: "",

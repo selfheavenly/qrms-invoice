@@ -32,8 +32,8 @@ export function getPostingKey(
   const isCN = docType.startsWith("2") || docType === "DG";
 
   if (lineType === "summary") {
-    // Summary rows use 01 for invoices, 02 for CN
-    return isCN ? "02" : "01";
+    // Summary rows use 01 for invoices, 11 for CN
+    return isCN ? "11" : "01";
   } else {
     // Line items use 40 for CN, 50 for invoices
     return isCN ? "40" : "50";
