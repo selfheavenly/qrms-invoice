@@ -32,6 +32,8 @@ To replace a limited field-validation process in QRMS with a **simple, browser-b
     - Line C
   ```
 
+---
+
 ### 3. **Validation**
 
 To ensure correctness, consistency, and compatibility with SAP posting automation, the form applies validation at **three hierarchical levels**: **QRMS**, **Invoice**, and **Line**.
@@ -40,25 +42,27 @@ To ensure correctness, consistency, and compatibility with SAP posting automatio
 
 ### 🔷 **QRMS Level**
 
-#### Required
+Each submission must include:
 
-- **QRMS Number**
+#### ✅ Required
+
+- **QRMS Number** – must be at least 2 characters
 
 ---
 
 ### 🧾 **Invoice Level**
 
-Each form submission may include multiple invoices. Each **invoice** must contain:
+Each submission may contain **multiple invoices**. Every **invoice** must include:
 
-#### Required
+#### ✅ Required
 
-- **Company Code**
-- **Document Type**
+- **Company Code** – must be exactly 4 characters and one of the predefined company codes
+- **Document Type** – must be exactly 2 characters and one of the allowed SAP document types
 - **Document Date**
-- **Customer**
-- **Currency**
+- **Customer** – must be at least 4 digits, numeric only
+- **Currency** – must be exactly 3 characters and one of the allowed currency codes
 
-#### Optional
+#### 📝 Optional
 
 - **Header Text**
 
@@ -66,17 +70,17 @@ Each form submission may include multiple invoices. Each **invoice** must contai
 
 ### 📄 **Line Level**
 
-Each invoice must contain at least one **line item**. For every line:
+Each invoice must have **at least one line item**. Every **line** must include:
 
-#### Required
+#### ✅ Required
 
-- **Amount in Document Currency** _(must be a positive number)_
-- **Item Text**
-- **GL Account**
+- **Amount in Document Currency** – must be a positive number
+- **Item Text** – minimum 2 characters
+- **GL Account** – must be exactly 8 digits, numeric only
 
-#### Optional
+#### 📝 Optional
 
-- **Tax Code**
+- **Tax Code** – if provided, must be 2 characters
 
 ---
 
@@ -86,149 +90,173 @@ Each line must satisfy **at least one** of the following conditional groups:
 
 ---
 
-#### a) **COPA Fields**
+#### a) **COPA Fields Group**
 
-_(If selected, all required COPA fields must be filled)_
+Used when full COPA breakdown is available. If this group is selected, all **required** COPA fields must be filled:
 
-- COPA - Profit Center
-- COPA - BRS Channel
-- COPA - Sales Organization
-- COPA - Sales Office
-- COPA - Customer
-- COPA - Product _(optional)_
-- COPA - Product Group
+- **COPA - Profit Center**
+- **COPA - BRS Channel**
+- **COPA - Sales Organization**
+- **COPA - Sales Office**
+- **COPA - Customer**
+- **COPA - Product Group**
 
-> ✅ All COPA fields except _Product_ are mandatory when using this option.
+> 🟢 **Product** is optional in this group
+> ✅ All other fields are **mandatory** if using this group
 
 ---
 
-#### b) **Rebilling Fields**
+#### b) **Rebilling Group**
 
-_(Only required if Tax Code is `S3` or `S4`)_
+Required **only when** `Tax Code` is `"S3"` or `"S4"`:
 
 - **Cross-Company Code**
 - **Trading Partner**
 
 ---
 
-#### c) **Profit Center**
+#### c) **Profit Center Group**
 
-- **Profit Center** (single field)
-
----
-
-#### d) **Cost Center**
-
-- **Cost Center** (single field)
+- **Profit Center**
 
 ---
 
-#### e) **WBS Element**
+#### d) **Cost Center Group**
 
-- **WBS Element** (single field)
+- **Cost Center**
+
+---
+
+#### e) **WBS Element Group**
+
+- **WBS Element**
 
 ---
 
 ### ✅ Summary
 
-A form submission is **valid** when:
+A submission is considered **valid** when:
 
-- All **required fields** at each level (QRMS, Invoice, Line) are filled
-- Each line satisfies **at least one** of the conditional groups (a-e)
+- All **required fields** at QRMS, Invoice, and Line levels are present and valid
+- Each **line item** satisfies **at least one** of the following:
 
-This ensures data consistency, enforces business logic, and supports automation-ready exports for SAP integration.
+  - Full **COPA** group (a)
+  - **Rebilling** group (b), if Tax Code is `S3` or `S4`
+  - Standalone **Profit Center**, **Cost Center**, or **WBS Element** group (c-e)
+
+This validation structure ensures:
+
+- **Data completeness**
+- **SAP compatibility**
+- **Alignment with business logic and automation expectations**
 
 ### 4. **Export**
 
-Upon submission, the app generates and downloads a standardized **Excel file (.xlsx)** using [SheetJS (xlsx)](https://sheetjs.com/). This file serves as a structured interface between the web form and SAP, allowing for direct integration with SAP’s **batch input transaction**.
+Upon form submission, the app generates and downloads a standardized **Excel file (.xlsx)** using [SheetJS (xlsx)](https://sheetjs.com/). This file acts as a structured interface between the web form and SAP, enabling compatibility with SAP’s **batch input process**.
 
 ---
 
 ### 🧾 Export Format & Structure
 
-- **Each line item** in the form becomes **one row** in the Excel file.
-- The output contains **a fixed set of columns**, in the exact order required by SAP.
-- Columns **must not be removed or reordered**, even if they are empty — this ensures compatibility with automated SAP imports.
+- Each **invoice** results in:
+
+  - **One summary row** (aggregated amount, includes `CUSTOMER`)
+  - Followed by **multiple line rows** (per item, without `CUSTOMER`)
+
+- The export uses a **fixed set of columns** (from `technicalHeaders`), **always in the same order**.
+- The sheet starts with:
+
+  1. **Label row** — friendly names (from `labelHeaders`)
+  2. **Technical row** — SAP field names (from `technicalHeaders`)
+  3. **Data rows** — generated from the form
 
 ---
 
 ### 📤 Excel Output Columns (SAP Batch Format)
 
-| Column Header      | Description / Mapping from Form Fields                                                                     |
-| ------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `ID`               | Autogenerated (used to group invoice lines - all invoice 1 lines have id 1, all invoice 2 lines have id 2) |
-| `LEDGER_GROUP`     | _(empty)_                                                                                                  |
-| `COMP_CODE`        | → **Company Code** _(Invoice)_                                                                             |
-| `DOC_DATE`         | → **Document Date** _(Invoice)_                                                                            |
-| `PSTNG_DATE`       | Current date                                                                                               |
-| `FIS_PERIOD`       | _(empty)_                                                                                                  |
-| `DOC_TYPE`         | → **Document Type** _(Invoice)_                                                                            |
-| `HEADER_TXT`       | → **Header Text** _(Invoice Optional)_                                                                     |
-| `REF_DOC_NO`       | → **QRMS Number** _(QRMS Level)_                                                                           |
-| `REASON_REV`       | _(empty)_                                                                                                  |
-| `PLANNED_REV_DATE` | _(empty)_                                                                                                  |
-| `EXCH_RATE`        | _(empty)_                                                                                                  |
-| `POST_KEY`         | → **Posting Key** _Derived (e.g. based on doc type)_                                                       |
-| `GL_ACCOUNT`       | → **GL Account** _(Line)_                                                                                  |
-| `ZZALTACC`         | _(empty)_                                                                                                  |
-| `CUSTOMER`         | → **Customer** _(Invoice)_                                                                                 |
-| `VENDOR_NO`        | _(empty)_                                                                                                  |
-| `SP_GL_IND`        | _(empty)_                                                                                                  |
-| `PMNTTRMS`         | _(empty)_                                                                                                  |
-| `BLINE_DATE`       | _(empty)_                                                                                                  |
-| `PMNT_BLOCK`       | _(empty)_                                                                                                  |
-| `CURRENCY`         | → **Currency** _(Invoice)_                                                                                 |
-| `WRBTR`            | → **Amount in Document Currency (gross/brutto)** _(Line)_                                                  |
-| `DMBTR`            | _(empty)_                                                                                                  |
-| `DMBE3`            | _(empty)_                                                                                                  |
-| `TAX_CODE`         | → **Tax Code** _(Line Optional)_                                                                           |
-| `ALLOC_NMBR`       | → **QRMS Number** _(QRMS Level)_                                                                           |
-| `ITEM_TEXT`        | → **Item Text** _(Line)_                                                                                   |
-| `XREF2`            | _(empty)_                                                                                                  |
-| `TRADE_ID`         | → **Trading Partner** _(Line Conditional)_                                                                 |
-| `COSTCENTER`       | → **Cost Center** _(Line Conditional)_                                                                     |
-| `FKBER`            | _(empty)_                                                                                                  |
-| `PROFIT_CTR`       | → **Profit Center** _(Line Conditional)_                                                                   |
-| `WBS_ELEMENT`      | → **WBS Element** _(Line Conditional)_                                                                     |
-| `ORDERID`          | _(empty)_                                                                                                  |
-| `PERSON_NO`        | _(empty)_                                                                                                  |
-| `QUANTITY`         | _(empty)_                                                                                                  |
-| `BASE_UOM`         | _(empty)_                                                                                                  |
-| `MATERIAL`         | _(empty)_                                                                                                  |
-| `PLANT`            | _(empty)_                                                                                                  |
-| `CROSS_COCODE`     | → **Cross-Company Code** _(if Tax Code is S3/S4)_                                                          |
-| `COCO_NUM`         | _(empty)_                                                                                                  |
-| `COPA_PRCTR`       | → **COPA - Profit Center** _(Line Conditional)_                                                            |
-| `COPA_WW050`       | → **COPA - BRS Channel** _(Line Conditional)_                                                              |
-| `COPA_VKORG`       | → **COPA - Sales Organization** _(Line Conditional)_                                                       |
-| `COPA_KMVKBU`      | → **COPA - Sales Office** _(Line Conditional)_                                                             |
-| `COPA_WERKS`       | _(empty)_                                                                                                  |
-| `COPA_WW110`       | _(empty)_                                                                                                  |
-| `COPA_KNDNR`       | → **COPA - Customer** _(Line Conditional)_                                                                 |
-| `COPA_KDGRP`       | _(empty)_                                                                                                  |
-| `COPA_WW210`       | _(empty)_                                                                                                  |
-| `COPA_KUNRG`       | _(empty)_                                                                                                  |
-| `COPA_ARTNR`       | → **COPA - Product** _(Line optional Conditional)_                                                         |
-| `COPA_WW040`       | → **COPA - Product Group** _(Line Conditional)_                                                            |
-| `COPA_WW080`       | _(empty)_                                                                                                  |
-| `COPA_MATKL`       | _(empty)_                                                                                                  |
-| `COPA_EXTWG`       | _(empty)_                                                                                                  |
-| `COPA_WW010`       | _(empty)_                                                                                                  |
-| `COPA_WW020`       | _(empty)_                                                                                                  |
-| `COPA_WW030`       | _(empty)_                                                                                                  |
-| `COPA_WW070`       | _(empty)_                                                                                                  |
-| `COPA_WW100`       | _(empty)_                                                                                                  |
-| `COPA_AUGRU`       | _(empty)_                                                                                                  |
-| `COPA_ZZLUR`       | _(empty)_                                                                                                  |
-| `COPA_WW090`       | _(empty)_                                                                                                  |
+| Column Header      | Description / Source                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `ID`               | Autogenerated — groups all lines under the same invoice                                               |
+| `LEDGER_GROUP`     | _(empty)_                                                                                             |
+| `COMP_CODE`        | → **Company Code** _(Invoice)_                                                                        |
+| `DOC_DATE`         | → **Document Date** _(Invoice)_ formatted as `dd.mm.yyyy`                                             |
+| `PSTNG_DATE`       | → **Today's Date**                                                                                    |
+| `FIS_PERIOD`       | _(empty)_                                                                                             |
+| `DOC_TYPE`         | → **Document Type** _(Invoice)_                                                                       |
+| `HEADER_TXT`       | → **Header Text** _(Optional)_                                                                        |
+| `REF_DOC_NO`       | → **QRMS Number**, formatted as `QRMS <number>` if provided                                           |
+| `REASON_REV`       | _(empty)_                                                                                             |
+| `PLANNED_REV_DATE` | _(empty)_                                                                                             |
+| `EXCH_RATE`        | _(empty)_                                                                                             |
+| `POST_KEY`         | **Derived via `getPostingKey()`**:<br> → `01`/`11` for summary, `50`/`40` for lines based on doc type |
+| `GL_ACCOUNT`       | → **GL Account** _(Line only)_                                                                        |
+| `ZZALTACC`         | _(empty)_                                                                                             |
+| `CUSTOMER`         | → **Customer** _(Summary only)_                                                                       |
+| `VENDOR_NO`        | _(empty)_                                                                                             |
+| `SP_GL_IND`        | _(empty)_                                                                                             |
+| `PMNTTRMS`         | _(empty)_                                                                                             |
+| `BLINE_DATE`       | _(empty)_                                                                                             |
+| `PMNT_BLOCK`       | _(empty)_                                                                                             |
+| `CURRENCY`         | → **Currency** _(Invoice)_                                                                            |
+| `WRBTR`            | → **Amount** _(negated depending on posting key)_ formatted with 2 decimals and comma separator       |
+| `DMBTR`            | _(empty)_                                                                                             |
+| `DMBE3`            | _(empty)_                                                                                             |
+| `TAX_CODE`         | → **Tax Code** _(Line optional)_                                                                      |
+| `ALLOC_NMBR`       | → **QRMS Number** (same as `REF_DOC_NO`)                                                              |
+| `ITEM_TEXT`        | → **Item Text** _(Line optional)_                                                                     |
+| `XREF2`            | _(empty)_                                                                                             |
+| `TRADE_ID`         | → **Trading Partner** _(Line conditional)_                                                            |
+| `COSTCENTER`       | → **Cost Center** _(Line conditional)_                                                                |
+| `FKBER`            | _(empty)_                                                                                             |
+| `PROFIT_CTR`       | → **Profit Center** _(Line conditional)_                                                              |
+| `WBS_ELEMENT`      | → **WBS Element** _(Line conditional)_                                                                |
+| `ORDERID`          | _(empty)_                                                                                             |
+| `PERSON_NO`        | _(empty)_                                                                                             |
+| `QUANTITY`         | _(empty)_                                                                                             |
+| `BASE_UOM`         | _(empty)_                                                                                             |
+| `MATERIAL`         | _(empty)_                                                                                             |
+| `PLANT`            | _(empty)_                                                                                             |
+| `CROSS_COCODE`     | → **Cross-Company Code** _(Only if `TAX_CODE` is `S3` or `S4`)_                                       |
+| `COCO_NUM`         | _(empty)_                                                                                             |
+| `COPA_PRCTR`       | → **COPA - Profit Center** _(Line optional)_                                                          |
+| `COPA_WW050`       | → **COPA - BRS Channel** _(Line optional)_                                                            |
+| `COPA_VKORG`       | → **COPA - Sales Org** _(Line optional)_                                                              |
+| `COPA_KMVKBU`      | → **COPA - Sales Office** _(Line optional)_                                                           |
+| `COPA_WERKS`       | _(empty)_                                                                                             |
+| `COPA_WW110`       | _(empty)_                                                                                             |
+| `COPA_KNDNR`       | → **COPA - Customer** _(Line optional)_                                                               |
+| `COPA_KDGRP`       | _(empty)_                                                                                             |
+| `COPA_WW210`       | _(empty)_                                                                                             |
+| `COPA_KUNRG`       | _(empty)_                                                                                             |
+| `COPA_ARTNR`       | → **COPA - Product** _(Line optional)_                                                                |
+| `COPA_WW040`       | → **COPA - Product Group** _(Line optional)_                                                          |
+| `COPA_WW080`       | _(empty)_                                                                                             |
+| `COPA_MATKL`       | _(empty)_                                                                                             |
+| `COPA_EXTWG`       | _(empty)_                                                                                             |
+| `COPA_WW010`       | _(empty)_                                                                                             |
+| `COPA_WW020`       | _(empty)_                                                                                             |
+| `COPA_WW030`       | _(empty)_                                                                                             |
+| `COPA_WW070`       | _(empty)_                                                                                             |
+| `COPA_WW100`       | _(empty)_                                                                                             |
+| `COPA_AUGRU`       | _(empty)_                                                                                             |
+| `COPA_ZZLUR`       | _(empty)_                                                                                             |
+| `COPA_WW090`       | _(empty)_                                                                                             |
 
 ---
 
-### 🔁 Transformation Logic
+### 🔁 Transformation Logic Summary
 
-- Form inputs from the user are **mapped and transformed** into this flat structure.
-- Any fields not filled by the requestor are exported as **empty cells**, not omitted.
-- This ensures compatibility with a **fixed-column SAP import format**.
+- **Invoices** are converted into:
+
+  - **1 summary row** (customer amount total, with `CUSTOMER`)
+  - **n line rows** (detailed items, without `CUSTOMER`)
+
+- Amounts are **negated** for posting keys `"11"`, `"50"`, and `"40"` as needed
+- Dates are formatted as `dd.mm.yyyy`, amounts as `1,234.56`
+- Output always includes **label + technical headers** as the first two rows
+- **Empty fields remain present** — required for SAP compatibility
+
+---
 
 ### 5. **Deployment**
 

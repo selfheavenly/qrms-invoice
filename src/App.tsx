@@ -126,20 +126,25 @@ export function App() {
                 <div>
                   <strong>QRMS Number</strong>
                   <br />
-                  Enter a valid QRMS Number (at least 2 characters). This is
-                  used as the reference number in SAP.
+                  Enter a valid QRMS Number (at least 2 characters). This will
+                  appear as the reference number in SAP.
                 </div>
 
                 <div>
                   <strong>Invoices</strong>
                   <br />
-                  You can add multiple invoices. Each must contain:
+                  You can add multiple invoices. Each invoice must contain:
                   <ul className="list-disc list-inside ml-4 mt-2">
-                    <li>Company Code</li>
-                    <li>Document Type</li>
+                    <li>
+                      Company Code (4 characters, must be one of the allowed
+                      codes)
+                    </li>
+                    <li>
+                      Document Type (2 characters, must be valid SAP code)
+                    </li>
                     <li>Document Date</li>
-                    <li>Customer</li>
-                    <li>Currency</li>
+                    <li>Customer (numeric, at least 4 digits)</li>
+                    <li>Currency (3-letter code, e.g., EUR, USD)</li>
                   </ul>
                   <div className="mt-1">Optional: Header Text</div>
                 </div>
@@ -147,63 +152,74 @@ export function App() {
                 <div>
                   <strong>Line Items</strong>
                   <br />
-                  Each invoice must have at least one line. Every line must
-                  include:
+                  Each invoice must contain at least one line item. Every line
+                  must include:
                   <ul className="list-disc list-inside ml-4 mt-2">
-                    <li>Amount (positive number)</li>
-                    <li>Item Text</li>
-                    <li>GL Account</li>
+                    <li>
+                      Amount in Document Currency (must be a positive number)
+                    </li>
+                    <li>Item Text (at least 2 characters)</li>
+                    <li>GL Account (exactly 8 digits)</li>
                   </ul>
                   <div className="mt-2">
-                    <strong>Tax Code</strong> is optional, but if provided, it
-                    must match the Document Type:
-                    <ul className="list-disc list-inside ml-4 mt-1 text-sm text-muted-foreground">
-                      <li>DR → S1, S2</li>
-                      <li>CR → S3, S4</li>
-                      <li>IN → S1, S4</li>
-                    </ul>
+                    <strong>Tax Code</strong> is optional but must be 2
+                    characters if filled.
                   </div>
                 </div>
 
                 <div>
                   <strong>Line-Level Conditional Requirements</strong>
                   <br />
-                  Each line must fulfill <em>at least one</em> of the following:
+                  <p>
+                    Each line must fulfill <em>at least one</em> of the
+                    following conditions:
+                  </p>
                   <ul className="list-disc list-inside ml-4 mt-2">
                     <li>
-                      <strong>COPA Fields</strong> (All required except
+                      <strong>COPA Fields</strong> (all required except
                       Product):
                       <ul className="list-disc list-inside ml-4 mt-1 text-sm">
-                        <li>Profit Center</li>
-                        <li>BRS Channel</li>
-                        <li>Sales Organization</li>
-                        <li>Sales Office</li>
-                        <li>Customer</li>
-                        <li>Product Group</li>
+                        <li>COPA - Profit Center</li>
+                        <li>COPA - BRS Channel</li>
+                        <li>COPA - Sales Organization</li>
+                        <li>COPA - Sales Office</li>
+                        <li>COPA - Customer</li>
+                        <li>COPA - Product Group</li>
                         <li>
                           <em>Product</em> (optional)
                         </li>
                       </ul>
                     </li>
                     <li>
-                      <strong>Rebilling Fields</strong> (Required if Tax Code is
-                      S3 or S4):
+                      <strong>Rebilling Fields</strong> (Required only if Tax
+                      Code is S3 or S4):
                       <ul className="list-disc list-inside ml-4 mt-1 text-sm">
                         <li>Cross-Company Code</li>
                         <li>Trading Partner</li>
                       </ul>
                     </li>
-                    <li>Profit Center (single field)</li>
-                    <li>Cost Center (single field)</li>
-                    <li>WBS Element (single field)</li>
+                    <li>
+                      <strong>Profit Center</strong> (single field)
+                    </li>
+                    <li>
+                      <strong>Cost Center</strong> (single field)
+                    </li>
+                    <li>
+                      <strong>WBS Element</strong> (single field)
+                    </li>
                   </ul>
                 </div>
 
                 <div>
                   <strong>Export</strong>
                   <br />
-                  When submitted, the app generates an Excel file with a fixed
-                  column structure, where each line becomes one row.
+                  When you submit the form, an Excel file (.xlsx) will be
+                  downloaded automatically.
+                  <br />- Each invoice generates one{" "}
+                  <strong>summary row</strong> followed by its{" "}
+                  <strong>line item rows</strong>.
+                  <br />- The file contains fixed columns compatible with SAP's
+                  batch input format.
                 </div>
               </DialogDescription>
             </DialogHeader>
