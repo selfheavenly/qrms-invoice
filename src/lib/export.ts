@@ -46,7 +46,7 @@ export function exportToExcel(data: any) {
       PMNT_BLOCK: "",
       CURRENCY: invoice.currency || "",
       WRBTR:
-        summaryPostKey === "50"
+        summaryPostKey === "50" || summaryPostKey === "11"
           ? `-${formatAmount(totalAmount)}`
           : formatAmount(totalAmount),
       DMBTR: "",

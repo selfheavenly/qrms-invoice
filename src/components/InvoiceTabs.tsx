@@ -10,6 +10,7 @@ type InvoiceTabsProps = {
   setActiveTab: (val: string) => void;
   handleAddInvoice: () => void;
   handleRemoveInvoice: (index: number) => void;
+  handleDuplicateInvoice: (index: number) => void; // <-- Add this in parent
 };
 
 export default function InvoiceTabs({
@@ -18,10 +19,10 @@ export default function InvoiceTabs({
   setActiveTab,
   handleAddInvoice,
   handleRemoveInvoice,
+  handleDuplicateInvoice,
 }: InvoiceTabsProps) {
   const tabsListRef = useRef<HTMLDivElement>(null);
 
-  // Scroll active tab into view smoothly, centered
   useEffect(() => {
     const activeTabElement = document.querySelector(`[data-state="active"]`);
     if (activeTabElement) {
@@ -29,10 +30,9 @@ export default function InvoiceTabs({
     }
   }, [activeTab]);
 
-  // Scroll tabs list left or right by fixed amount
   const scrollTabs = (direction: "left" | "right") => {
     if (!tabsListRef.current) return;
-    const scrollAmount = 128; // Scroll 128px per click (4 tabs width approx)
+    const scrollAmount = 128;
     tabsListRef.current.scrollBy({
       left: direction === "left" ? -scrollAmount : scrollAmount,
       behavior: "smooth",
@@ -41,8 +41,6 @@ export default function InvoiceTabs({
 
   return (
     <div className="w-full max-w-6xl mx-auto">
-      {" "}
-      {/* Fixed max width for container */}
       <Tabs
         value={activeTab}
         onValueChange={(val) => {
@@ -50,9 +48,8 @@ export default function InvoiceTabs({
         }}
         className="w-full"
       >
-        {/* Tabs container with fixed width and border */}
         <div className="relative w-full border border-gray-200 rounded-md bg-white shadow-sm">
-          {/* Left scroll button */}
+          {/* Left scroll */}
           <button
             type="button"
             aria-label="Scroll Left"
@@ -61,12 +58,11 @@ export default function InvoiceTabs({
             disabled={
               !tabsListRef.current || tabsListRef.current.scrollLeft === 0
             }
-            style={{ userSelect: "none" }}
           >
             ‹
           </button>
 
-          {/* Right scroll button */}
+          {/* Right scroll */}
           <button
             type="button"
             aria-label="Scroll Right"
@@ -78,20 +74,18 @@ export default function InvoiceTabs({
                 tabsListRef.current.clientWidth ===
                 tabsListRef.current.scrollLeft
             }
-            style={{ userSelect: "none" }}
           >
             ›
           </button>
 
-          {/* Scrollable tabs list without padding/gap so borders touch */}
           <div
             ref={tabsListRef}
             className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 no-scrollbar-touch px-8"
             style={{
               scrollBehavior: "smooth",
               scrollPaddingInline: "50px",
-              paddingBottom: "12px", // extra space for scrollbar below tabs
-              marginBottom: "-12px", // pull container bottom up to compensate padding
+              paddingBottom: "12px",
+              marginBottom: "-12px",
             }}
           >
             <TabsList className="flex bg-white p-0">
@@ -119,25 +113,34 @@ export default function InvoiceTabs({
           </div>
         </div>
 
-        {/* Tab contents */}
         {invoices.map((_, index) => (
           <TabsContent
             key={index}
             value={`invoice-${index}`}
             className="mt-4 border p-6 shadow-sm bg-white max-h-[75vh] overflow-y-auto w-full rounded-md border-gray-200"
           >
-            <InvoiceForm nestIndex={index} />
-
-            <div className="mt-4 flex justify-end">
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={invoices.length === 1}
-                onClick={() => handleRemoveInvoice(index)}
-              >
-                Remove Invoice
-              </Button>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Invoice {index + 1}</h2>
+              <div className="space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleDuplicateInvoice(index)}
+                >
+                  Duplicate
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={invoices.length === 1}
+                  onClick={() => handleRemoveInvoice(index)}
+                >
+                  Remove
+                </Button>
+              </div>
             </div>
+
+            <InvoiceForm nestIndex={index} />
           </TabsContent>
         ))}
       </Tabs>

@@ -48,10 +48,17 @@ export default function InvoiceForm({ nestIndex }: Props) {
     deselectAll();
   };
 
+  const { getValues } = useFormContext(); // Add this
+
   const duplicateSelected = () => {
+    const values = getValues(); // grab the latest form data
+    const currentLines = values.invoices?.[nestIndex]?.lines ?? [];
+
     Array.from(selected).forEach((index) => {
-      const line = lines[index];
-      append({ ...line });
+      const liveLine = currentLines[index];
+      if (liveLine) {
+        append({ ...liveLine });
+      }
     });
   };
 
